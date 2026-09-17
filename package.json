@@ -1,0 +1,14 @@
+{
+  "name": "journal-club",
+  "version": "1.0.0",
+  "description": "Journal Club website with member registration and article publishing.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.4",
+    "pdf-parse": "^2.4.5",
+    "sqlite3": "^5.1.6"
+  }
+}

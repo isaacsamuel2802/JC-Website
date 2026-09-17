@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Journal Club</title>
+  <link rel="stylesheet" href="styles.css?v=2" />
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <div class="navbar-logo" aria-label="Journal Club logo">
+        <img id="siteLogo" src="jc edit new.PNG" alt="Journal Club logo" />
+      </div>
+      <h2 class="navbar-brand">Journal Club</h2>
+    </div>
+    <div class="navbar-right">
+      <a href="index.html" class="nav-link active" data-nav="home">Home</a>
+      <a href="about.html" class="nav-link" data-nav="about" data-role="member">About</a>
+      <button id="btnSearchArticles" class="secondary-btn">Search Articles</button>
+      <button id="btnThemeToggle" class="secondary-btn">Lite theme</button>
+      <div class="nav-buttons">
+        <button id="btnMemberLogin" class="secondary-btn">Member login</button>
+        <button id="btnAdminLogin" class="secondary-btn">Admin access</button>
+        <button id="btnNewMember" class="primary-btn">Become a Member</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <header class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">SRM INSTITUTE OF SCIENCE AND TECHNOLOGY-RAMAPURAM</span>
+        <h1 id="siteTitle">Journal Club</h1>
+        <p id="siteSubtitle">A warm, elegant journal space where members publish articles through PDF uploads.</p>
+      </div>
+      <div class="status-card">
+        <p id="statusMessage">Not signed in</p>
+        <p class="status-note">Only registered members can publish. Admins can edit site details.</p>
+      </div>
+    </header>
+
+    <div id="serverWarning" class="server-warning hidden">
+      <p>Backend server not reachable. Start it with <code>node server.js</code> and open the site at <a href="http://localhost:3000">http://localhost:3000</a>. Member registration and publishing require the backend.</p>
+    </div>
+
+    <section class="panel panel-home active" data-panel="home">
+      <div class="list-card">
+        <div id="upcomingEventsSection" class="upcoming-events-card hidden">
+          <div class="list-header">
+            <div>
+              <h2>📅 Upcoming Events</h2>
+              <p class="subtle">Stay updated with upcoming Journal Club events and meetings.</p>
+            </div>
+          </div>
+          <div id="upcomingEventsList" class="events-list">
+            <p class="empty-state">No upcoming events scheduled.</p>
+          </div>
+        </div>
+
+        <div class="list-header">
+          <div>
+            <h2>Discover the latest Journal Club entries</h2>
+            <p class="subtle">A college journal club space designed for thoughtful research and shared ideas.</p>
+          </div>
+          <div class="search-group">
+            <input type="search" id="searchInput" placeholder="Search by title, author, or category" />
+          </div>
+        </div>
+
+        <div id="uploadList" class="upload-list">
+          <p class="empty-state">No uploads yet. Become a member and publish your first PDF article.</p>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // Remove near-black background from the logo at runtime using canvas
+      (function(){
+        const img = document.getElementById('siteLogo');
+        if(!img) return;
+        function makeTransparent(original){
+          const canvas = document.createElement('canvas');
+          canvas.width = original.naturalWidth;
+          canvas.height = original.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(original,0,0);
+          try{
+            const imgd = ctx.getImageData(0,0,canvas.width,canvas.height);
+            const d = imgd.data;
+            for(let i=0;i<d.length;i+=4){
+              const r=d[i], g=d[i+1], b=d[i+2];
+              // treat very dark pixels as background -> make transparent
+              if(r<30 && g<30 && b<30){ d[i+3]=0; }
+            }
+            ctx.putImageData(imgd,0,0);
+            img.src = canvas.toDataURL('image/png');
+          }catch(e){
+            // CORS or other issues — fallback to original image
+            console.warn('Logo processing failed:', e);
+          }
+        }
+        if(img.complete){ makeTransparent(img); }
+        else img.onload = ()=> makeTransparent(img);
+      })();
+
+      (function(){
+        const toggleButton = document.getElementById('btnThemeToggle');
+        const themeKey = 'jc-theme';
+        const body = document.body;
+        function applyTheme(theme){
+          const useLite = theme === 'lite';
+          body.classList.toggle('lite-theme', useLite);
+          if(toggleButton){
+            toggleButton.textContent = useLite ? 'Dark theme' : 'Lite theme';
+          }
+        }
+        const savedTheme = localStorage.getItem(themeKey) || 'dark';
+        applyTheme(savedTheme);
+        if(toggleButton){
+          toggleButton.addEventListener('click', ()=>{
+            const nextTheme = body.classList.contains('lite-theme') ? 'dark' : 'lite';
+            applyTheme(nextTheme);
+            localStorage.setItem(themeKey, nextTheme);
+          });
+        }
+      })();
+    </script>
+
+    <section class="panel panel-member-register hidden" data-panel="member-register">
+      <div class="auth-card panel-card">
+        <button class="secondary-btn back-home" data-panel="home">Back to home</button>
+        <h2>Register as a Journal Club member</h2>
+        <p class="subtle">Join the journal community and publish PDFs with ease.</p>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="memberName">Name</label>
+            <input type="text" id="memberName" name="memberName" placeholder="Your name" required />
+          </div>
+          <div class="form-group">
+            <label for="memberEmail">Email</label>
+            <input type="email" id="memberEmail" name="memberEmail" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="memberPassword">Password</label>
+            <input type="password" id="memberPassword" name="memberPassword" placeholder="Create a password" required />
+          </div>
+          <button type="submit" class="btn-submit">Register</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel panel-member-login hidden" data-panel="member-login">
+      <div class="auth-card panel-card">
+        <button class="secondary-btn back-home" data-panel="home">Back to home</button>
+        <h2>Member login</h2>
+        <p class="subtle">Access your Journal Club publishing dashboard.</p>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" name="loginEmail" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" name="loginPassword" placeholder="Enter password" required />
+          </div>
+          <button type="submit" class="btn-submit">Log in</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel panel-member-dashboard hidden" data-panel="member-dashboard">
+      <div id="memberDashboard" class="member-dashboard">
+        <div class="dashboard-header">
+          <div>
+            <h2>Member publishing</h2>
+            <p id="memberGreeting">Welcome back.</p>
+          </div>
+          <button id="memberLogout" class="secondary-btn">Sign out</button>
+        </div>
+
+        <div class="upload-card">
+          <h3>Publish an Article</h3>
+          <p class="help-text">Upload a PDF and the article will appear automatically in the journal feed.</p>
+          <form id="uploadForm">
+            <div class="form-group">
+              <label for="title">Title</label>
+              <input type="text" id="title" name="title" placeholder="Title or leave blank to use filename" />
+            </div>
+            <div class="form-group two-col">
+              <div>
+                <label for="author">Author</label>
+                <input type="text" id="author" name="author" placeholder="Author name or member name" />
+              </div>
+              <div>
+                <label for="date">Publication Date</label>
+                <input type="date" id="date" name="date" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="category">Category</label>
+              <select id="category" name="category">
+                <option value="Research Article">Research Article</option>
+                <option value="Journal">Journal</option>
+                <option value="Review">Review</option>
+                <option value="Case Study">Case Study</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="fileUpload">Upload PDF</label>
+              <input type="file" id="fileUpload" name="fileUpload" accept=".pdf" required />
+              <small>Only PDF uploads are published automatically.</small>
+            </div>
+            <button type="submit" class="btn-submit">Publish Article</button>
+          </form>
+        </div>
+
+        <div class="upload-card attendance-card">
+          <h3>Your Attendance</h3>
+          <p class="help-text">View your attendance records for meetings and events.</p>
+          <div id="memberAttendanceSummary" class="attendance-summary"></div>
+          <div id="memberAttendanceList" class="attendance-list"></div>
+          <button id="memberAttendanceExportBtn" class="secondary-btn hidden">Export attendance CSV</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel-admin" data-panel="admin">
+      <div id="adminLoginCard" class="auth-card panel-card">
+        <button class="secondary-btn back-home" data-panel="home">Back to home</button>
+        <h2>Admin sign in</h2>
+        <form id="adminLoginForm">
+          <div class="form-group">
+            <label for="adminUser">Admin username</label>
+            <input type="text" id="adminUser" name="adminUser" placeholder="admin" required />
+          </div>
+          <div class="form-group">
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" name="adminPassword" placeholder="Enter admin password" required />
+          </div>
+          <button type="submit" class="btn-submit">Log in</button>
+        </form>
+        <p class="help-text">Default admin is <strong>admin</strong> / <strong>***REMOVED***</strong>. Change it after first sign-in.</p>
+      </div>
+
+      <div id="adminDashboard" class="admin-dashboard hidden">
+        <div class="dashboard-header">
+          <div>
+            <h2>Site editor</h2>
+            <p>Update the club description and header text without editing code.</p>
+          </div>
+          <button id="adminLogout" class="secondary-btn">Sign out</button>
+        </div>
+
+        <div class="admin-grid">
+          <div class="upload-card">
+            <h3>Site settings</h3>
+            <form id="adminForm">
+              <div class="form-group">
+                <label for="siteTitleInput">Header title</label>
+                <input type="text" id="siteTitleInput" name="siteTitleInput" placeholder="Site title" required />
+              </div>
+              <div class="form-group">
+                <label for="siteSubtitleInput">Header subtitle</label>
+                <input type="text" id="siteSubtitleInput" name="siteSubtitleInput" placeholder="Site subtitle" required />
+              </div>
+              <div class="form-group">
+                <label for="aboutTextInput">About text</label>
+                <textarea id="aboutTextInput" name="aboutTextInput" rows="5" placeholder="Club about details" required></textarea>
+              </div>
+              <button type="submit" class="btn-submit">Save changes</button>
+            </form>
+          </div>
+
+          <div class="upload-card">
+            <h3>Members</h3>
+            <div id="memberList" class="member-list"></div>
+          </div>
+        </div>
+
+        <div class="upload-card event-management-card">
+          <h3>📅 Manage Events</h3>
+          <p class="help-text">Create, edit, and manage upcoming events for the Journal Club.</p>
+          <form id="eventForm">
+            <div class="form-group">
+              <label for="eventTitle">Event Title</label>
+              <input type="text" id="eventTitle" name="eventTitle" placeholder="e.g., Guest Lecture on AI Research" required />
+            </div>
+            <div class="form-group">
+              <label for="eventDescription">Description</label>
+              <textarea id="eventDescription" name="eventDescription" placeholder="Event details and description" rows="3"></textarea>
+            </div>
+            <div class="form-group two-col">
+              <div>
+                <label for="eventStartDate">Start Date</label>
+                <input type="date" id="eventStartDate" name="eventStartDate" required />
+              </div>
+              <div>
+                <label for="eventEndDate">End Date (optional)</label>
+                <input type="date" id="eventEndDate" name="eventEndDate" />
+              </div>
+            </div>
+            <div class="form-group two-col">
+              <div>
+                <label for="eventStartTime">Start Time (optional)</label>
+                <input type="time" id="eventStartTime" name="eventStartTime" />
+              </div>
+              <div>
+                <label for="eventEndTime">End Time (optional)</label>
+                <input type="time" id="eventEndTime" name="eventEndTime" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="eventLocation">Location</label>
+              <input type="text" id="eventLocation" name="eventLocation" placeholder="e.g., Seminar Hall A" />
+            </div>
+              <div class="form-group">
+                <label for="eventImage">Event Image (optional)</label>
+                <input type="file" id="eventImage" name="eventImage" accept="image/*" />
+                <small>Upload an image to display with the event (JPG, PNG, etc.)</small>
+                <div id="eventImagePreview" class="image-preview hidden"></div>
+              </div>
+            <button type="submit" class="btn-submit" id="eventSubmitBtn">Add Event</button>
+            <input type="hidden" id="eventEditingId" value="" />
+          </form>
+          <div id="eventsList" class="events-list-admin"></div>
+        </div>
+
+        <div class="upload-card attendance-card">
+          <h3>Attendance Portal</h3>
+          <p class="help-text">Mark attendance for members and review records by date.</p>
+          <form id="attendanceForm">
+            <div class="form-group">
+              <label for="attendanceDate">Attendance Date</label>
+              <input type="date" id="attendanceDate" name="attendanceDate" required />
+            </div>
+            <div class="form-group">
+              <label>Members</label>
+              <div id="attendanceMemberGrid" class="attendance-grid"></div>
+            </div>
+            <button type="submit" class="btn-submit">Save attendance</button>
+          </form>
+          <div id="attendanceRecords" class="attendance-records"></div>
+          <button id="attendanceExportBtn" class="secondary-btn hidden">Export attendance CSV</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
