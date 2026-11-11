@@ -36,6 +36,7 @@ let currentMemberAttendanceRecords = [];
 const btnSearchArticles = document.getElementById('btnSearchArticles');
 const btnMemberLogin = document.getElementById('btnMemberLogin');
 const btnAdminLogin = document.getElementById('btnAdminLogin');
+const btnGoToRegister = document.getElementById('btnGoToRegister');
 const backButtons = document.querySelectorAll('.back-home');
 
 const registerForm = document.getElementById('registerForm');
@@ -43,19 +44,48 @@ const loginForm = document.getElementById('loginForm');
 const uploadForm = document.getElementById('uploadForm');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const adminForm = document.getElementById('adminForm');
+const pastEventsList = document.getElementById('pastEventsList');
+const pastEventForm = document.getElementById('pastEventForm');
+const adminPastEventsList = document.getElementById('adminPastEventsList');
+const pastEventImageInput = document.getElementById('pastEventImage');
+const pastEventImagePreview = document.getElementById('pastEventImagePreview');
+const pastEventSubmitBtn = document.getElementById('pastEventSubmitBtn');
+const cancelPastEventEdit = document.getElementById('cancelPastEventEdit');
 
 let uploads = [];
 let adminMembers = [];
 let upcomingEvents = [];
+let upcomingEventsLoaded = false;
+let upcomingEventsLoadError = false;
+let pastEvents = [];
+let pastEventsLoaded = false;
+let pastEventsLoadError = false;
+let editingPastEventImage = '';
 let adminSettings = {
   siteTitle: 'Journal Club',
   siteSubtitle: 'A warm, elegant journal space where members publish articles through PDF uploads.',
   aboutText: 'This club is dedicated to sharing journals, articles, and research through a simple, polished publishing workflow. Members upload PDF files and the journal appears automatically.'
 };
 let session = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) || 'null') || { type: 'visitor' };
+if (session.type === 'admin') session = { type: 'visitor' };
+
+async function restoreAdminSession() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/session`);
+    if (!response.ok) return;
+    const data = await response.json();
+    session = { type: 'admin', name: data.name, email: '' };
+    saveState();
+    renderUI();
+    restorePanelFromHash();
+  } catch (error) {
+    console.error('Unable to verify admin session', error);
+  }
+}
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
+  const savedSession = session.type === 'admin' ? { type: 'visitor' } : session;
+  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(savedSession));
 }
 
 function setPanel(panelName) {
@@ -64,6 +94,10 @@ function setPanel(panelName) {
     panel.classList.toggle('active', show);
     panel.classList.toggle('hidden', !show);
   });
+  document.body.classList.toggle('admin-login-view', panelName === 'admin' && session.type !== 'admin');
+  if (panelName === 'admin') {
+    window.scrollTo(0, 0);
+  }
 }
 
 function updateServerWarning(visible, message) {
@@ -84,6 +118,31 @@ async function loadSettings() {
   } catch (error) {
     console.error('Unable to load settings', error);
     updateServerWarning(true, 'Backend server not reachable. Start it with <code>node server.js</code> and open the site at <a href="http://localhost:3000">http://localhost:3000</a>. Member registration and publishing require the backend.');
+  }
+}
+
+async function restoreMemberSession() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/session`);
+    if (!response.ok) {
+      if (session.type === 'member') {
+        session = { type: 'visitor' };
+        saveState();
+        renderUI();
+      }
+      return;
+    }
+    const data = await response.json();
+    session = { type: 'member', name: data.name, email: data.email };
+    saveState();
+    renderUI();
+  } catch (error) {
+    console.error('Unable to verify member session', error);
+    if (session.type === 'member') {
+      session = { type: 'visitor' };
+      saveState();
+      renderUI();
+    }
   }
 }
 
@@ -192,8 +251,8 @@ function renderUploads(filter = '') {
   }
 
   uploadList.innerHTML = filtered.map(({ item, originalIndex }) => {
-    const dateLabel = item.date ? `Published: ${item.date}` : 'Publication date not set';
-    const fileLabel = item.fileName || 'PDF upload';
+    const dateLabel = item.date ? `Published: ${escapeHtml(item.date)}` : 'Publication date not set';
+    const fileLabel = escapeHtml(item.fileName || 'PDF upload');
 
     const deleteButton = session.type === 'admin' || (session.type === 'member' && session.email === item.uploadedByEmail)
       ? `<button class="action-btn" data-action="delete" data-index="${originalIndex}">Delete</button>`
@@ -207,13 +266,13 @@ function renderUploads(filter = '') {
 
     return `
       <article class="upload-card-item" data-upload-index="${originalIndex}">
-        <h3>${item.title || 'Untitled article'}</h3>
+        <h3>${escapeHtml(item.title || 'Untitled article')}</h3>
         <div class="meta">
-          <span>Author: ${item.author || item.uploadedBy}</span>
-          <span>${item.category}</span>
+          <span>Author: ${escapeHtml(item.author || item.uploadedBy)}</span>
+          <span>${escapeHtml(item.category)}</span>
           <span>${dateLabel}</span>
         </div>
-        <p>Uploaded by ${item.uploadedBy} · ${fileLabel}</p>
+        <p>Uploaded by ${escapeHtml(item.uploadedBy)} · ${fileLabel}</p>
         <div class="article-text">${textPreview}</div>
         <div class="action-row">
           <button class="action-btn" data-action="download" data-index="${originalIndex}">Download PDF</button>
@@ -227,9 +286,18 @@ function renderUploads(filter = '') {
 }
 
 function updateSiteContent() {
-  if (siteTitle) siteTitle.textContent = adminSettings.siteTitle;
-  if (siteSubtitle) siteSubtitle.textContent = adminSettings.siteSubtitle;
-  if (aboutText) aboutText.textContent = adminSettings.aboutText;
+  const defaultTitle = 'Journal Club';
+  const defaultSubtitle = 'A warm, elegant journal space where members publish articles through PDF uploads.';
+
+  if (siteTitle && (!siteTitle.textContent.trim() || siteTitle.textContent.trim() === defaultTitle)) {
+    siteTitle.textContent = adminSettings.siteTitle;
+  }
+  if (siteSubtitle && (!siteSubtitle.textContent.trim() || siteSubtitle.textContent.trim() === defaultSubtitle)) {
+    siteSubtitle.textContent = adminSettings.siteSubtitle;
+  }
+  if (aboutText && !aboutText.textContent.trim()) {
+    aboutText.textContent = adminSettings.aboutText;
+  }
 }
 
 function getToday() {
@@ -246,7 +314,8 @@ function formatAttendanceStatus(status) {
 
 function csvEscape(value) {
   const stringValue = value == null ? '' : String(value);
-  const escaped = stringValue.replace(/"/g, '""');
+  const formulaSafeValue = /^[\s]*[=+\-@]/.test(stringValue) ? `'${stringValue}` : stringValue;
+  const escaped = formulaSafeValue.replace(/"/g, '""');
   return `"${escaped}"`;
 }
 
@@ -318,11 +387,11 @@ function renderAttendanceMemberGrid(members, records = []) {
     return `
       <div class="attendance-row">
         <div>
-          <strong>${member.name}</strong>
-          <div class="subtle">${member.email}</div>
+          <strong>${escapeHtml(member.name)}</strong>
+            <div class="subtle">${escapeHtml(member.email)}</div>
         </div>
         <label>
-          <input type="checkbox" name="attendancePresent" value="${member.email}" ${checked} />
+            <input type="checkbox" name="attendancePresent" value="${escapeHtml(member.email)}" ${checked} />
           Present
         </label>
       </div>
@@ -356,8 +425,8 @@ function renderAttendanceRecords(records = []) {
         <tbody>
           ${records.map(record => `
             <tr>
-              <td>${record.memberName || ''}</td>
-              <td>${record.memberEmail}</td>
+              <td>${escapeHtml(record.memberName || '')}</td>
+              <td>${escapeHtml(record.memberEmail)}</td>
               <td><span class="attendance-status ${attendanceStatusClass(record.status)}">${formatAttendanceStatus(record.status)}</span></td>
             </tr>
           `).join('')}
@@ -397,7 +466,7 @@ function renderMemberAttendance(records = []) {
       <tbody>
         ${records.map(record => `
           <tr>
-            <td>${record.date || ''}</td>
+            <td>${escapeHtml(record.date || '')}</td>
             <td><span class="attendance-status ${attendanceStatusClass(record.status)}">${formatAttendanceStatus(record.status)}</span></td>
           </tr>
         `).join('')}
@@ -413,7 +482,11 @@ async function loadAttendanceForDate(date) {
 
   const members = adminMembers.length > 0 ? adminMembers : await renderMemberList();
   const response = await fetch(`${API_BASE_URL}/api/attendance?date=${encodeURIComponent(activeDate)}`);
-  const records = response.ok ? await response.json() : [];
+  if (!response.ok) {
+    showAlert('Unable to load attendance. Verify your admin session and try again.');
+    return;
+  }
+  const records = await response.json();
   renderAttendanceMemberGrid(members, records);
   renderAttendanceRecords(records);
 }
@@ -470,6 +543,7 @@ function openAdminDashboard() {
     loadAttendanceForDate(targetDate);
   });
   fetchUpcomingEvents();
+  fetchPastEvents();
 }
 
 function closeAdminDashboard() {
@@ -517,8 +591,8 @@ async function renderMemberList() {
     adminMembers = members;
     memberListElement.innerHTML = members.map(member => `
       <div class="member-item">
-        <span>${member.name} — ${member.email}</span>
-        <button class="action-btn" data-action="remove-member" data-email="${member.email}">Remove</button>
+        <span>${escapeHtml(member.name)} — ${escapeHtml(member.email)}</span>
+        <button class="action-btn" data-action="remove-member" data-email="${escapeHtml(member.email)}">Remove</button>
       </div>
     `).join('');
     return members;
@@ -682,7 +756,15 @@ if (loginForm) {
 }
 
 if (memberLogout) {
-  memberLogout.addEventListener('click', () => {
+  memberLogout.addEventListener('click', async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/logout`, { method: 'POST' });
+      if (!response.ok) throw new Error(`Member logout failed with status ${response.status}`);
+    } catch (error) {
+      console.error('Member logout error', error);
+      showAlert('Unable to end your member session. Please try again.');
+      return;
+    }
     session = { type: 'visitor' };
     saveState();
     renderUI();
@@ -691,21 +773,33 @@ if (memberLogout) {
 }
 
 if (adminLoginForm) {
-  adminLoginForm.addEventListener('submit', (event) => {
+  adminLoginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const username = document.getElementById('adminUser').value.trim();
     const password = document.getElementById('adminPassword').value;
 
-    if (username !== 'admin' || password !== '***REMOVED***') {
-      showAlert('Admin credentials are incorrect.');
-      return;
-    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        showAlert(error.error || 'Admin sign-in failed.');
+        return;
+      }
 
-    session = { type: 'admin', name: 'Administrator', email: '' };
-    saveState();
-    renderUI();
-    setPanel('admin');
-    adminLoginForm.reset();
+      const data = await response.json();
+      session = { type: 'admin', name: data.name, email: '' };
+      saveState();
+      renderUI();
+      setPanel('admin');
+      adminLoginForm.reset();
+    } catch (error) {
+      console.error('Admin login error', error);
+      showAlert('Unable to reach the backend. Start the server and try again.');
+    }
   });
 }
 
@@ -739,7 +833,15 @@ if (adminForm) {
 }
 
 if (adminLogout) {
-  adminLogout.addEventListener('click', () => {
+  adminLogout.addEventListener('click', async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/logout`, { method: 'POST' });
+      if (!response.ok) throw new Error(`Admin logout failed with status ${response.status}`);
+    } catch (error) {
+      console.error('Admin logout error', error);
+      showAlert('Unable to end the admin session on the server. Please try again.');
+      return;
+    }
     session = { type: 'visitor' };
     saveState();
     renderUI();
@@ -779,6 +881,10 @@ if (uploadList) {
         return;
       }
 
+      if (!/^data:application\/pdf;base64,/i.test(item.fileData)) {
+        showAlert('This article does not contain a valid PDF download.');
+        return;
+      }
       const link = document.createElement('a');
       link.href = item.fileData;
       link.download = item.fileName;
@@ -907,15 +1013,21 @@ if (searchInput) {
 async function fetchUpcomingEvents() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/events`);
-    upcomingEvents = response.ok ? await response.json() : [];
+    if (!response.ok) {
+      throw new Error(`Events request failed with status ${response.status}`);
+    }
+    upcomingEvents = await response.json();
+    upcomingEventsLoadError = false;
+  } catch (error) {
+    console.error('Unable to load events', error);
+    upcomingEvents = [];
+    upcomingEventsLoadError = true;
+  } finally {
+    upcomingEventsLoaded = true;
     renderUpcomingEvents();
     if (session.type === 'admin') {
       renderAdminEventsList();
     }
-  } catch (error) {
-    console.error('Unable to load events', error);
-    upcomingEvents = [];
-    renderUpcomingEvents();
   }
 }
 
@@ -925,11 +1037,255 @@ function formatEventDate(date, time) {
   return time ? `${formatted} at ${time}` : formatted;
 }
 
+async function fetchPastEvents() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/past-events`);
+    if (!response.ok) {
+      throw new Error(`Past events request failed with status ${response.status}`);
+    }
+    pastEvents = await response.json();
+    pastEventsLoadError = false;
+  } catch (error) {
+    console.error('Unable to load past events', error);
+    pastEvents = [];
+    pastEventsLoadError = true;
+  } finally {
+    pastEventsLoaded = true;
+    renderPastEvents();
+    renderEventsPage();
+    renderAdminPastEvents();
+  }
+}
+
+function renderPastEvents() {
+  if (!pastEventsList) return;
+  if (!pastEventsLoaded) return;
+  if (pastEventsLoadError) {
+    pastEventsList.innerHTML = '<p class="empty-state">Unable to load previous events. Please refresh the page to try again.</p>';
+    return;
+  }
+
+  const search = (document.getElementById('pastEventSearch')?.value || '').trim().toLowerCase();
+  const fromDate = document.getElementById('pastEventFrom')?.value || '';
+  const toDate = document.getElementById('pastEventTo')?.value || '';
+  const filteredEvents = pastEvents.filter(event => {
+    const searchableText = `${event.title} ${event.description || ''} ${event.location || ''}`.toLowerCase();
+    return searchableText.includes(search)
+      && (!fromDate || event.eventDate >= fromDate)
+      && (!toDate || event.eventDate <= toDate);
+  });
+
+  if (filteredEvents.length === 0) {
+    pastEventsList.innerHTML = `<p class="empty-state">${pastEvents.length ? 'No events match your search and date filters.' : 'No previous events have been added yet.'}</p>`;
+    return;
+  }
+
+  pastEventsList.innerHTML = filteredEvents.map(event => {
+    const imageHtml = event.eventImage
+      ? `<img class="past-event-image" src="${escapeHtml(event.eventImage)}" alt="${escapeHtml(event.title)}" loading="lazy" />`
+      : '<div class="past-event-image-placeholder">Journal Club event</div>';
+    const eventDate = new Date(`${event.eventDate}T00:00:00`).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    return `
+      <a class="past-event-card" href="events.html?id=${encodeURIComponent(event.id)}" aria-label="View details for ${escapeHtml(event.title)}">
+        <div class="past-event-card-media">${imageHtml}</div>
+        <div class="past-event-card-content">
+          <time datetime="${escapeHtml(event.eventDate)}">${escapeHtml(eventDate)}</time>
+          <h3>${escapeHtml(event.title)}</h3>
+          ${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}
+          ${event.location ? `<span class="past-event-location">${escapeHtml(event.location)}</span>` : ''}
+          <span class="past-event-link-label">View event details <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function renderEventsPage() {
+  const eventsList = document.getElementById('eventsPageList');
+  const eventDetail = document.getElementById('eventPageDetail');
+  const eventsStatus = document.getElementById('eventsPageStatus');
+  if (!eventsList || !eventDetail || !eventsStatus) return;
+
+  if (!pastEventsLoaded) return;
+  if (pastEventsLoadError) {
+    eventsStatus.textContent = 'Unable to load events. Please refresh the page to try again.';
+    eventsList.innerHTML = '';
+    eventDetail.innerHTML = '';
+    return;
+  }
+
+  const requestedId = new URLSearchParams(window.location.search).get('id');
+  const selectedEvent = requestedId
+    ? pastEvents.find(event => String(event.id) === requestedId)
+    : null;
+
+  if (selectedEvent) {
+    const eventDate = new Date(`${selectedEvent.eventDate}T00:00:00`).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    const imageHtml = selectedEvent.eventImage
+      ? `<img class="event-detail-image" src="${escapeHtml(selectedEvent.eventImage)}" alt="${escapeHtml(selectedEvent.title)}" />`
+      : '<div class="event-detail-image-placeholder">Journal Club event</div>';
+
+    eventsStatus.textContent = '';
+    eventDetail.innerHTML = `
+      <a class="event-detail-back" href="events.html">← All events</a>
+      <article class="event-detail-card">
+        <div class="event-detail-media">${imageHtml}</div>
+        <div class="event-detail-content">
+          <time datetime="${escapeHtml(selectedEvent.eventDate)}">${escapeHtml(eventDate)}</time>
+          <h2>${escapeHtml(selectedEvent.title)}</h2>
+          ${selectedEvent.location ? `<p class="event-detail-location"><strong>Location</strong><span>${escapeHtml(selectedEvent.location)}</span></p>` : ''}
+          ${selectedEvent.description ? `<p class="event-detail-description">${escapeHtml(selectedEvent.description)}</p>` : '<p class="event-detail-description">More information about this event is not available.</p>'}
+        </div>
+      </article>
+    `;
+    eventsList.innerHTML = '';
+    return;
+  }
+
+  eventDetail.innerHTML = requestedId
+    ? '<p class="empty-state">That event could not be found. It may have been removed from the archive.</p>'
+    : '';
+  eventsStatus.textContent = pastEvents.length ? '' : 'No previous events have been added yet.';
+  eventsList.innerHTML = pastEvents.map(event => {
+    const eventDate = new Date(`${event.eventDate}T00:00:00`).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    const imageHtml = event.eventImage
+      ? `<img class="events-page-image" src="${escapeHtml(event.eventImage)}" alt="" loading="lazy" />`
+      : '<div class="events-page-image-placeholder">Journal Club event</div>';
+    return `
+      <a class="events-page-card" href="events.html?id=${encodeURIComponent(event.id)}">
+        <div class="events-page-card-media">${imageHtml}</div>
+        <div class="events-page-card-content">
+          <time datetime="${escapeHtml(event.eventDate)}">${escapeHtml(eventDate)}</time>
+          <h2>${escapeHtml(event.title)}</h2>
+          ${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}
+          ${event.location ? `<span class="past-event-location">${escapeHtml(event.location)}</span>` : ''}
+          <span class="past-event-link-label">Read event details <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function renderAdminPastEvents() {
+  if (!adminPastEventsList) return;
+  if (!pastEventsLoaded) {
+    adminPastEventsList.innerHTML = '<p class="empty-state">Loading past events...</p>';
+    return;
+  }
+  if (pastEventsLoadError) {
+    adminPastEventsList.innerHTML = '<p class="empty-state">Unable to load past events.</p>';
+    return;
+  }
+  if (pastEvents.length === 0) {
+    adminPastEventsList.innerHTML = '<p class="empty-state">No past events in the archive yet.</p>';
+    return;
+  }
+
+  adminPastEventsList.innerHTML = pastEvents.map(event => `
+    <div class="event-admin-item past-event-admin-item" data-past-event-id="${event.id}">
+      <div class="event-admin-thumb">
+        ${event.eventImage
+          ? `<img src="${escapeHtml(event.eventImage)}" alt="${escapeHtml(event.title)}" class="event-admin-thumbnail" />`
+          : '<div class="event-admin-thumbnail-placeholder">📷</div>'}
+      </div>
+      <div class="past-event-admin-content">
+        <div class="event-admin-header">
+          <div>
+            <h4>${escapeHtml(event.title)}</h4>
+            <p class="subtle">${escapeHtml(formatEventDate(event.eventDate))}</p>
+            ${event.location ? `<p class="subtle">${escapeHtml(event.location)}</p>` : ''}
+          </div>
+          <div class="event-admin-actions">
+            <button type="button" class="action-btn" data-past-event-action="edit" data-past-event-id="${event.id}">Edit</button>
+            <button type="button" class="action-btn" data-past-event-action="delete" data-past-event-id="${event.id}">Delete</button>
+          </div>
+        </div>
+        ${event.description ? `<p class="event-admin-description">${escapeHtml(event.description)}</p>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function resetPastEventForm() {
+  if (!pastEventForm) return;
+  pastEventForm.reset();
+  document.getElementById('pastEventEditingId').value = '';
+  editingPastEventImage = '';
+  pastEventSubmitBtn.textContent = 'Add past event';
+  cancelPastEventEdit.classList.add('hidden');
+  pastEventImagePreview.innerHTML = '';
+  pastEventImagePreview.classList.add('hidden');
+}
+
+async function savePastEvent() {
+  const title = document.getElementById('pastEventTitle').value.trim();
+  const eventDate = document.getElementById('pastEventDate').value;
+  const location = document.getElementById('pastEventLocation').value.trim();
+  const description = document.getElementById('pastEventDescription').value.trim();
+  const editingId = document.getElementById('pastEventEditingId').value;
+  const imageFile = pastEventImageInput.files[0];
+
+  if (!title || !eventDate) {
+    showAlert('Enter the event title and date.');
+    return;
+  }
+  const supportedImageTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+  if (imageFile && (!supportedImageTypes.includes(imageFile.type) || imageFile.size > 8 * 1024 * 1024)) {
+    showAlert('Choose a supported image under 8 MB.');
+    return;
+  }
+
+  try {
+    const eventImage = imageFile ? await readFileAsDataURL(imageFile) : editingPastEventImage;
+    const response = await fetch(
+      editingId ? `${API_BASE_URL}/api/past-events/${editingId}` : `${API_BASE_URL}/api/past-events`,
+      {
+        method: editingId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, eventDate, location, description, eventImage })
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      showAlert(error.error || 'Unable to save past event.');
+      return;
+    }
+
+    showAlert(editingId ? 'Past event updated.' : 'Past event added.');
+    resetPastEventForm();
+    await fetchPastEvents();
+  } catch (error) {
+    console.error('Past event save error', error);
+    showAlert('Unable to save past event.');
+  }
+}
+
 function renderUpcomingEvents() {
   const upcomingEventsSection = document.getElementById('upcomingEventsSection');
   const upcomingEventsList = document.getElementById('upcomingEventsList');
   
   if (!upcomingEventsList) return;
+  if (upcomingEventsSection) upcomingEventsSection.classList.remove('hidden');
+  if (!upcomingEventsLoaded) return;
+
+  if (upcomingEventsLoadError) {
+    upcomingEventsList.innerHTML = '<p class="empty-state">Unable to load upcoming events. Please refresh the page to try again.</p>';
+    return;
+  }
 
   // Filter and sort events: only show future events
   const today = new Date().toISOString().split('T')[0];
@@ -938,32 +1294,26 @@ function renderUpcomingEvents() {
   });
 
   if (futureEvents.length === 0) {
-    if (upcomingEventsSection) upcomingEventsSection.classList.add('hidden');
     upcomingEventsList.innerHTML = '<p class="empty-state">No upcoming events scheduled.</p>';
     return;
   }
 
-  // Show events section for logged-in members on the home panel
-  if (upcomingEventsSection && (session.type === 'member' || session.type === 'visitor')) {
-    upcomingEventsSection.classList.remove('hidden');
-  }
-
     upcomingEventsList.innerHTML = futureEvents.map((event, index) => {
       const timeStr = event.startTime ? ` at ${event.startTime}` : '';
-      const locationStr = event.location ? ` | 📍 ${event.location}` : '';
+      const locationStr = event.location ? ` | 📍 ${escapeHtml(event.location)}` : '';
       const imageHtml = event.eventImage 
-        ? `<div class="event-image-wrapper"><img src="${event.eventImage}" alt="${escapeHtml(event.title)}" class="event-image" /></div>`
+        ? `<div class="event-image-wrapper"><img src="${escapeHtml(event.eventImage)}" alt="${escapeHtml(event.title)}" class="event-image" /></div>`
         : '<div class="event-image-wrapper"><div class="event-image-placeholder">📷</div></div>';
     
       return `
         <div class="event-item" data-event-id="${event.id}">
           ${imageHtml}
           <div class="event-content">
-            <div class="event-date">📅 ${new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+            <div class="event-date">📅 ${escapeHtml(new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))}</div>
             <h4>${escapeHtml(event.title)}</h4>
             ${event.description ? `<p class="event-description">${escapeHtml(event.description)}</p>` : ''}
             <div class="event-meta">
-              <span class="event-time">${formatEventDate(event.startDate, event.startTime)}</span>${locationStr}
+              <span class="event-time">${escapeHtml(formatEventDate(event.startDate, event.startTime))}</span>${locationStr}
             </div>
           </div>
         </div>
@@ -983,11 +1333,11 @@ function renderAdminEventsList() {
   eventsList.innerHTML = upcomingEvents.map(event => {
     const timeStr = event.startTime ? ` at ${event.startTime}` : '';
     return `
-      <div class="event-admin-item" data-event-id="${event.id}">
+      <div class="event-admin-item" data-event-id="${Number(event.id)}">
         <div class="event-admin-header">
           <div>
             <h4>${escapeHtml(event.title)}</h4>
-            <p class="subtle">${formatEventDate(event.startDate, event.startTime)}</p>
+            <p class="subtle">${escapeHtml(formatEventDate(event.startDate, event.startTime))}</p>
             ${event.location ? `<p class="subtle">📍 ${escapeHtml(event.location)}</p>` : ''}
           </div>
           <div class="event-admin-actions">
@@ -1005,17 +1355,17 @@ function renderAdminEventsList() {
     eventsList.innerHTML = upcomingEvents.map(event => {
       const timeStr = event.startTime ? ` at ${event.startTime}` : '';
       const imageThumb = event.eventImage 
-        ? `<img src="${event.eventImage}" alt="${escapeHtml(event.title)}" class="event-admin-thumbnail" />`
+        ? `<img src="${escapeHtml(event.eventImage)}" alt="${escapeHtml(event.title)}" class="event-admin-thumbnail" />`
         : '<div class="event-admin-thumbnail-placeholder">📷</div>';
       return `
-        <div class="event-admin-item" data-event-id="${event.id}">
+        <div class="event-admin-item" data-event-id="${Number(event.id)}">
           <div class="event-admin-thumb">
             ${imageThumb}
           </div>
           <div class="event-admin-header">
             <div>
               <h4>${escapeHtml(event.title)}</h4>
-              <p class="subtle">${formatEventDate(event.startDate, event.startTime)}</p>
+              <p class="subtle">${escapeHtml(formatEventDate(event.startDate, event.startTime))}</p>
               ${event.location ? `<p class="subtle">📍 ${escapeHtml(event.location)}</p>` : ''}
             </div>
             <div class="event-admin-actions">
@@ -1145,6 +1495,101 @@ if (eventForm) {
   });
 }
 
+if (pastEventForm) {
+  pastEventForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (session.type !== 'admin') {
+      showAlert('Only admin can manage past events.');
+      return;
+    }
+    await savePastEvent();
+  });
+}
+
+if (pastEventImageInput) {
+  pastEventImageInput.addEventListener('change', async () => {
+    const file = pastEventImageInput.files[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)
+      || file.size > 8 * 1024 * 1024) {
+      pastEventImageInput.value = '';
+      showAlert('Choose a supported image under 8 MB.');
+      return;
+    }
+    try {
+      const imageData = await readFileAsDataURL(file);
+      pastEventImagePreview.innerHTML = `<img src="${imageData}" alt="Past event image preview" />`;
+      pastEventImagePreview.classList.remove('hidden');
+    } catch (error) {
+      console.error('Past event image preview failed', error);
+      showAlert('Unable to preview this image.');
+    }
+  });
+}
+
+if (cancelPastEventEdit) {
+  cancelPastEventEdit.addEventListener('click', resetPastEventForm);
+}
+
+if (adminPastEventsList) {
+  adminPastEventsList.addEventListener('click', async event => {
+    const button = event.target.closest('button[data-past-event-action]');
+    if (!button) return;
+    const eventId = button.dataset.pastEventId;
+    const pastEvent = pastEvents.find(item => String(item.id) === eventId);
+    if (!pastEvent) return;
+
+    if (button.dataset.pastEventAction === 'edit') {
+      document.getElementById('pastEventTitle').value = pastEvent.title;
+      document.getElementById('pastEventDate').value = pastEvent.eventDate;
+      document.getElementById('pastEventLocation').value = pastEvent.location || '';
+      document.getElementById('pastEventDescription').value = pastEvent.description || '';
+      document.getElementById('pastEventEditingId').value = pastEvent.id;
+      editingPastEventImage = pastEvent.eventImage || '';
+      pastEventImageInput.value = '';
+      pastEventSubmitBtn.textContent = 'Save changes';
+      cancelPastEventEdit.classList.remove('hidden');
+      pastEventImagePreview.innerHTML = editingPastEventImage
+        ? `<img src="${escapeHtml(editingPastEventImage)}" alt="${escapeHtml(pastEvent.title)} image preview" />`
+        : '';
+      pastEventImagePreview.classList.toggle('hidden', !editingPastEventImage);
+      pastEventForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (button.dataset.pastEventAction === 'delete' && confirm('Delete this past event from the archive?')) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/past-events/${eventId}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const error = await response.json();
+          showAlert(error.error || 'Unable to delete past event.');
+          return;
+        }
+        if (document.getElementById('pastEventEditingId').value === eventId) {
+          resetPastEventForm();
+        }
+        showAlert('Past event deleted.');
+        await fetchPastEvents();
+      } catch (error) {
+        console.error('Past event delete error', error);
+        showAlert('Unable to delete past event.');
+      }
+    }
+  });
+}
+
+['pastEventSearch', 'pastEventFrom', 'pastEventTo'].forEach(id => {
+  const input = document.getElementById(id);
+  if (input) input.addEventListener('input', renderPastEvents);
+});
+
+const clearPastEventFilters = document.getElementById('clearPastEventFilters');
+if (clearPastEventFilters) {
+  clearPastEventFilters.addEventListener('click', () => {
+    document.getElementById('pastEventSearch').value = '';
+    document.getElementById('pastEventFrom').value = '';
+    document.getElementById('pastEventTo').value = '';
+    renderPastEvents();
+  });
+}
+
 // Handle navbar buttons - check if they exist and add event listeners
 const navBtnNewMember = document.getElementById('btnNewMember');
 const navBtnMemberLogin = document.getElementById('btnMemberLogin');
@@ -1181,6 +1626,15 @@ if (navBtnMemberLogin) {
       window.location.href = 'index.html#login';
     }
   });
+}
+
+if (btnGoToRegister) {
+  btnGoToRegister.addEventListener('click', () => setPanel('member-register'));
+}
+
+const btnGoToLogin = document.getElementById('btnGoToLogin');
+if (btnGoToLogin) {
+  btnGoToLogin.addEventListener('click', () => setPanel('member-login'));
 }
 
 if (navBtnAdminLogin) {
@@ -1257,8 +1711,11 @@ function restorePanelFromHash() {
 loadSettings();
 fetchArticles();
 fetchUpcomingEvents();
+fetchPastEvents();
 renderUI();
 restorePanelFromHash();
+restoreAdminSession();
+restoreMemberSession();
 
 // Achievement counters: animate numbers from 0 to target when visible
 function animateCount(el, target, suffix) {

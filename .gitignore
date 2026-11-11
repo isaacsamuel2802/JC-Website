@@ -1,5 +1,10 @@
 # Ignore the massive node_modules folder (Crucial)
 node_modules/
+.env
+.env.*
+!.env.example
+data/*.db
+data/*.db-*
 
 # Ignore temporary work logs and patch notes
 TEMP_patch_notes.txt

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal Club - Test Layout</title>
+  <!-- Play CDN Script for Tailwind CSS -->
+  <script src="https://tailwindcss.com"></script>
+</head>
+<body class="bg-[#0b0f19] text-slate-200 antialiased font-sans min-h-screen flex flex-col justify-between">
+
+  <!-- 1. Navigation Bar -->
+  <header class="border-b border-slate-800 bg-[#0b0f19]/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Logo Area -->
+      <div class="flex items-center gap-3">
+        <span class="text-2xl font-bold text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">$</span>
+        <span class="text-lg font-semibold tracking-tight text-white">Journal Club</span>
+      </div>
+      
+      <!-- Central Navigation Links -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+        <a href="#" class="text-white hover:text-emerald-400 transition">Home</a>
+        <a href="#" class="hover:text-white transition">About</a>
+        <a href="#" class="hover:text-white transition">Search Articles</a>
+        <a href="#" class="hover:text-white transition">Lite theme</a>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-4">
+        <a href="#" id="btnLogin" class="text-sm font-medium hover:text-white transition">Member login</a>
+        <a href="#" id="btnAdmin" class="text-sm font-medium text-slate-400 hover:text-white transition border border-slate-700 px-3 py-1.5 rounded-md bg-slate-800/40">Admin access</a>
+        <a href="#" id="btnRegister" class="text-sm font-medium bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-1.5 rounded-md transition shadow-lg shadow-emerald-500/20">Become a Member</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Main Hero Section -->
+  <main class="flex-grow max-w-4xl mx-auto px-6 pt-24 pb-16 text-center flex flex-col items-center justify-center">
+    <!-- University Tag -->
+    <span class="text-[10px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full mb-6">
+      SRM INSTITUTE OF SCIENCE AND TECHNOLOGY-RAMAPURAM
+    </span>
+
+    <!-- Massive Glowing Headline (Turbo style) -->
+    <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-6">
+      Journal <span class="bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(52,211,153,0.2)]">Club</span>
+    </h1>
+
+    <!-- Subtitle/Description -->
+    <p class="text-lg text-slate-400 max-w-xl mx-auto mb-12 leading-relaxed">
+      A warm, elegant journal space where members publish articles through PDF uploads.
+    </p>
+
+    <!-- Admin Status Info Card -->
+    <div class="w-full max-w-md border border-slate-800 bg-slate-900/50 rounded-xl p-6 text-center backdrop-blur-sm shadow-xl">
+      <p id="statusMessage" class="text-sm font-medium text-emerald-400 mb-1 flex items-center justify-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Signed in as admin
+      </p>
+      <p class="text-xs text-slate-500">Only registered members can publish. Admins can edit site details.</p>
+    </div>
+  </main>
+
+  <!-- 3. Dynamic Sticky Error Banner at bottom -->
+  <footer class="w-full border-t border-red-500/20 bg-red-950/20 backdrop-blur px-6 py-3 text-center">
+    <p class="text-xs font-medium text-red-400">
+      Backend server not reachable. Start it with <code class="bg-red-950/50 px-1 py-0.5 rounded border border-red-500/30 font-mono text-red-300">node server.js</code> and open the site at <a href="http://localhost:3000" class="underline hover:text-red-300">http://localhost:3000</a>. Member registration and publishing require the backend.
+    </p>
+  </footer>
+
+  <!-- Link to your existing scripts to verify hooks -->
+  <script src="./scripts/script.js"></script>
+</body>
+</html>

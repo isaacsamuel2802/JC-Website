@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events | Journal Club</title>
+  <link rel="stylesheet" href="stylesone.css?v=7" />
+</head>
+<body class="events-page">
+  <div class="page-streaks" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <nav class="navbar">
+    <div class="navbar-left">
+      <div class="navbar-logo" aria-label="Journal Club logo">
+        <img src="jc edit new.PNG" alt="Journal Club logo" />
+      </div>
+      <h2 class="navbar-brand">Journal Club</h2>
+    </div>
+    <div class="navbar-right">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="about.html" class="nav-link">About</a>
+      <a href="events.html" class="nav-link active">Events</a>
+      <div class="nav-buttons">
+        <button id="btnMemberLogin" class="secondary-btn">Member login</button>
+        <button id="btnAdminLogin" class="secondary-btn">Admin access</button>
+        <button id="btnNewMember" class="primary-btn">Become a Member</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="events-page-container">
+    <header class="events-page-heading">
+      <span class="eyebrow">JOURNAL CLUB ARCHIVE</span>
+      <h1>Events</h1>
+      <p>Explore previous Journal Club events and their highlights.</p>
+    </header>
+    <p id="eventsPageStatus" class="empty-state" aria-live="polite">Loading events...</p>
+    <section id="eventPageDetail" aria-live="polite"></section>
+    <section id="eventsPageList" class="events-page-list" aria-label="Previous events"></section>
+  </main>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>

@@ -1,12 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://tailwindcss.com"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Journal Club</title>
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="stylesheet" href="stylesone.css?v=7" />
+  <style>
+    @keyframes fadeInTitle {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    #siteTitle {
+      font-size: clamp(3.5rem, 8vw, 6rem);
+      animation: fadeInTitle 5.5s ease-in-out both;
+    }
+    .eyebrow {
+      font-size: clamp(1rem, 2vw, 1.35rem);
+    }
+    #siteSubtitle {
+      animation: fadeInTitle 5.5s ease-in-out both;
+    }
+
+  </style>
 </head>
-<body>
+<body class= "bg-slate-900 text-slate-100 antialiased">
+  <div class="page-streaks" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
   <!-- Top Navigation Bar -->
   <nav class="navbar">
     <div class="navbar-left">
@@ -18,36 +45,30 @@
     <div class="navbar-right">
       <a href="index.html" class="nav-link active" data-nav="home">Home</a>
       <a href="about.html" class="nav-link" data-nav="about" data-role="member">About</a>
-      <button id="btnSearchArticles" class="secondary-btn">Search Articles</button>
-      <button id="btnThemeToggle" class="secondary-btn">Lite theme</button>
-      <div class="nav-buttons">
-        <button id="btnMemberLogin" class="secondary-btn">Member login</button>
-        <button id="btnAdminLogin" class="secondary-btn">Admin access</button>
-        <button id="btnNewMember" class="primary-btn">Become a Member</button>
-      </div>
+      <a href="events.html" class="nav-link">Events</a>
+      <button id="btnSearchArticles" class="secondary-btn">Search articles</button>
+<button id="btnMemberLogin" class="secondary-btn">Member login</button>
+<button id="btnAdminLogin" class="secondary-btn">Admin access</button>
+<button id="btnNewMember" class="primary-btn">Become a member</button>
     </div>
   </nav>
 
   <div class="container">
-    <header class="hero">
-      <div class="hero-content">
-        <span class="eyebrow">SRM INSTITUTE OF SCIENCE AND TECHNOLOGY-RAMAPURAM</span>
-        <h1 id="siteTitle">Journal Club</h1>
-        <p id="siteSubtitle">A warm, elegant journal space where members publish articles through PDF uploads.</p>
-      </div>
-      <div class="status-card">
-        <p id="statusMessage">Not signed in</p>
-        <p class="status-note">Only registered members can publish. Admins can edit site details.</p>
-      </div>
-    </header>
-
     <div id="serverWarning" class="server-warning hidden">
       <p>Backend server not reachable. Start it with <code>node server.js</code> and open the site at <a href="http://localhost:3000">http://localhost:3000</a>. Member registration and publishing require the backend.</p>
     </div>
 
     <section class="panel panel-home active" data-panel="home">
       <div class="list-card">
-        <div id="upcomingEventsSection" class="upcoming-events-card hidden">
+        <header class="hero">
+          <div class="hero-content">
+            <span class="eyebrow">SRM INSTITUTE OF SCIENCE AND TECHNOLOGY-RAMAPURAM</span>
+            <h1 id="siteTitle">Journal Club</h1>
+            <p id="siteSubtitle">A Website Solely Created for the Members of the Journal Club</p>
+          </div>
+        </header>
+
+        <div id="upcomingEventsSection" class="upcoming-events-card">
           <div class="list-header">
             <div>
               <h2>📅 Upcoming Events</h2>
@@ -55,7 +76,7 @@
             </div>
           </div>
           <div id="upcomingEventsList" class="events-list">
-            <p class="empty-state">No upcoming events scheduled.</p>
+            <p class="empty-state">Loading upcoming events...</p>
           </div>
         </div>
 
@@ -105,57 +126,45 @@
         else img.onload = ()=> makeTransparent(img);
       })();
 
-      (function(){
-        const toggleButton = document.getElementById('btnThemeToggle');
-        const themeKey = 'jc-theme';
-        const body = document.body;
-        function applyTheme(theme){
-          const useLite = theme === 'lite';
-          body.classList.toggle('lite-theme', useLite);
-          if(toggleButton){
-            toggleButton.textContent = useLite ? 'Dark theme' : 'Lite theme';
-          }
-        }
-        const savedTheme = localStorage.getItem(themeKey) || 'dark';
-        applyTheme(savedTheme);
-        if(toggleButton){
-          toggleButton.addEventListener('click', ()=>{
-            const nextTheme = body.classList.contains('lite-theme') ? 'dark' : 'lite';
-            applyTheme(nextTheme);
-            localStorage.setItem(themeKey, nextTheme);
-          });
-        }
-      })();
     </script>
 
     <section class="panel panel-member-register hidden" data-panel="member-register">
-      <div class="auth-card panel-card">
+      <div class="auth-card panel-card member-login-card member-register-card">
         <button class="secondary-btn back-home" data-panel="home">Back to home</button>
-        <h2>Register as a Journal Club member</h2>
-        <p class="subtle">Join the journal community and publish PDFs with ease.</p>
+        <div class="member-login-brand">
+          <img src="jc edit new.PNG" alt="" />
+          <span>Journal Club</span>
+        </div>
+        <h2>Create your account</h2>
+        <p class="subtle">Join the community and share your research with fellow members.</p>
         <form id="registerForm">
           <div class="form-group">
-            <label for="memberName">Name</label>
-            <input type="text" id="memberName" name="memberName" placeholder="Your name" required />
+            <label for="memberName">Full name</label>
+            <input type="text" id="memberName" name="memberName" placeholder="Your full name" autocomplete="name" required />
           </div>
           <div class="form-group">
             <label for="memberEmail">Email</label>
-            <input type="email" id="memberEmail" name="memberEmail" placeholder="you@example.com" required />
+            <input type="email" id="memberEmail" name="memberEmail" placeholder="you@example.com" autocomplete="email" required />
           </div>
           <div class="form-group">
             <label for="memberPassword">Password</label>
-            <input type="password" id="memberPassword" name="memberPassword" placeholder="Create a password" required />
+            <input type="password" id="memberPassword" name="memberPassword" placeholder="Create a password (12+ characters)" minlength="12" maxlength="128" autocomplete="new-password" required />
           </div>
-          <button type="submit" class="btn-submit">Register</button>
+          <button type="submit" class="btn-submit">Create account</button>
         </form>
+        <p class="member-login-register">Already a member? <button type="button" id="btnGoToLogin">Sign in</button></p>
       </div>
     </section>
 
     <section class="panel panel-member-login hidden" data-panel="member-login">
-      <div class="auth-card panel-card">
+      <div class="auth-card panel-card member-login-card">
         <button class="secondary-btn back-home" data-panel="home">Back to home</button>
-        <h2>Member login</h2>
-        <p class="subtle">Access your Journal Club publishing dashboard.</p>
+        <div class="member-login-brand">
+          <img src="jc edit new.PNG" alt="" />
+          <span>Journal Club</span>
+        </div>
+        <h2>Sign in</h2>
+        <p class="subtle">Use your member account to continue.</p>
         <form id="loginForm">
           <div class="form-group">
             <label for="loginEmail">Email</label>
@@ -165,8 +174,9 @@
             <label for="loginPassword">Password</label>
             <input type="password" id="loginPassword" name="loginPassword" placeholder="Enter password" required />
           </div>
-          <button type="submit" class="btn-submit">Log in</button>
+          <button type="submit" class="btn-submit">Sign in</button>
         </form>
+        <p class="member-login-register">New to Journal Club? <button type="button" id="btnGoToRegister">Create an account</button></p>
       </div>
     </section>
 
@@ -227,21 +237,28 @@
     </section>
 
     <section class="panel panel-admin" data-panel="admin">
-      <div id="adminLoginCard" class="auth-card panel-card">
-        <button class="secondary-btn back-home" data-panel="home">Back to home</button>
-        <h2>Admin sign in</h2>
-        <form id="adminLoginForm">
-          <div class="form-group">
-            <label for="adminUser">Admin username</label>
-            <input type="text" id="adminUser" name="adminUser" placeholder="admin" required />
-          </div>
-          <div class="form-group">
-            <label for="adminPassword">Password</label>
-            <input type="password" id="adminPassword" name="adminPassword" placeholder="Enter admin password" required />
-          </div>
-          <button type="submit" class="btn-submit">Log in</button>
-        </form>
-        <p class="help-text">Default admin is <strong>admin</strong> / <strong>***REMOVED***</strong>. Change it after first sign-in.</p>
+      <div id="adminLoginCard" class="auth-card panel-card admin-login-card">
+        <div class="admin-login-intro">
+          <span class="eyebrow">JOURNAL CLUB</span>
+          <h2>Admin portal</h2>
+          <p>Manage club events, members, attendance, and website details from one place.</p>
+        </div>
+        <div class="admin-login-form-panel">
+          <button class="secondary-btn back-home" data-panel="home">Back to home</button>
+          <h2>Welcome back</h2>
+          <p class="subtle">Sign in to continue to the site editor.</p>
+          <form id="adminLoginForm">
+            <div class="form-group">
+              <label for="adminUser">Admin username</label>
+              <input type="text" id="adminUser" name="adminUser" placeholder="Enter admin username" required />
+            </div>
+            <div class="form-group">
+              <label for="adminPassword">Password</label>
+              <input type="password" id="adminPassword" name="adminPassword" placeholder="Enter admin password" required />
+            </div>
+            <button type="submit" class="btn-submit">Log in</button>
+          </form>
+        </div>
       </div>
 
       <div id="adminDashboard" class="admin-dashboard hidden">
@@ -327,6 +344,43 @@
           <div id="eventsList" class="events-list-admin"></div>
         </div>
 
+        <div class="upload-card past-event-management-card">
+          <h3>Past events archive</h3>
+          <p class="help-text">Add events that have already happened. These appear separately from upcoming events on the About page.</p>
+          <form id="pastEventForm">
+            <div class="form-group">
+              <label for="pastEventTitle">Event title</label>
+              <input type="text" id="pastEventTitle" required />
+            </div>
+            <div class="form-group two-col">
+              <div>
+                <label for="pastEventDate">Date held</label>
+                <input type="date" id="pastEventDate" required />
+              </div>
+              <div>
+                <label for="pastEventLocation">Location (optional)</label>
+                <input type="text" id="pastEventLocation" placeholder="e.g., Seminar Hall A" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="pastEventDescription">Description (optional)</label>
+              <textarea id="pastEventDescription" rows="3" placeholder="A short summary of the event"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="pastEventImage">Event image (optional)</label>
+              <input type="file" id="pastEventImage" accept="image/png,image/jpeg,image/webp,image/gif" />
+              <small>PNG, JPG, WEBP, or GIF, up to 8 MB.</small>
+              <div id="pastEventImagePreview" class="past-event-image-preview hidden"></div>
+            </div>
+            <div class="past-event-form-actions">
+              <button type="submit" class="btn-submit" id="pastEventSubmitBtn">Add past event</button>
+              <button type="button" class="secondary-btn hidden" id="cancelPastEventEdit">Cancel edit</button>
+            </div>
+            <input type="hidden" id="pastEventEditingId" value="" />
+          </form>
+          <div id="adminPastEventsList" class="events-list-admin"></div>
+        </div>
+
         <div class="upload-card attendance-card">
           <h3>Attendance Portal</h3>
           <p class="help-text">Mark attendance for members and review records by date.</p>
@@ -354,6 +408,6 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
   </script>
-  <script src="script.js"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>
