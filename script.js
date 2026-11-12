@@ -286,19 +286,17 @@ function renderUploads(filter = '') {
 }
 
 function updateSiteContent() {
-  const defaultTitle = 'Journal Club';
-  const defaultSubtitle = 'A warm, elegant journal space where members publish articles through PDF uploads.';
-
-  if (siteTitle && (!siteTitle.textContent.trim() || siteTitle.textContent.trim() === defaultTitle)) {
+  if (siteTitle && adminSettings.siteTitle) {
     siteTitle.textContent = adminSettings.siteTitle;
   }
-  if (siteSubtitle && (!siteSubtitle.textContent.trim() || siteSubtitle.textContent.trim() === defaultSubtitle)) {
+  if (siteSubtitle && adminSettings.siteSubtitle) {
     siteSubtitle.textContent = adminSettings.siteSubtitle;
   }
-  if (aboutText && !aboutText.textContent.trim()) {
+  if (aboutText && adminSettings.aboutText) {
     aboutText.textContent = adminSettings.aboutText;
   }
 }
+
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
@@ -1768,3 +1766,60 @@ if (achievementsSection) {
     startAchievementCountersOnce();
   }
 }
+window.handleGoogleCredentialResponse = async function (response) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || 'Google sign-in failed.');
+      return;
+    }
+    session = { type: 'member', name: data.name, email: data.email };
+    saveState();
+    renderUI();
+    setPanel('member-dashboard');
+  } catch (err) {
+    console.error('Google login error:', err);
+    alert('Unable to reach server for Google sign-in.');
+  }
+};
+function initGoogleSignIn() {
+  if (!window.google || !google.accounts || !google.accounts.id) {
+    setTimeout(initGoogleSignIn, 200);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: '1087606608620-lrp0j7413pmopt4q0s5cmr1p1u8dcabj.apps.googleusercontent.com',
+    callback: window.handleGoogleCredentialResponse
+  });
+
+  const signInContainer = document.getElementById('googleSignInBtn');
+  if (signInContainer) {
+    google.accounts.id.renderButton(signInContainer, {
+      theme: 'filled_black',
+      size: 'large',
+      type: 'standard',
+      shape: 'pill',
+      text: 'continue_with',
+      width: 280
+    });
+  }
+
+  const signUpContainer = document.getElementById('googleSignUpBtn');
+  if (signUpContainer) {
+    google.accounts.id.renderButton(signUpContainer, {
+      theme: 'filled_black',
+      size: 'large',
+      type: 'standard',
+      shape: 'pill',
+      text: 'signup_with',
+      width: 280
+    });
+  }
+}
+
+initGoogleSignIn();

@@ -2423,4 +2423,188 @@ button,
     text-align: center;
   }
 }
+/* =========================================
+   Clean Native Styling for Admin & Member Portals
+   ========================================= */
+.admin-dashboard,
+.member-dashboard {
+  max-width: 960px;
+  margin: 24px auto 48px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.admin-dashboard .dashboard-header,
+.member-dashboard .dashboard-header,
+.admin-dashboard .upload-card,
+.member-dashboard .upload-card {
+  background: rgba(8, 13, 24, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 24px 26px;
+}
+
+.admin-dashboard .dashboard-header,
+.member-dashboard .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-dashboard .dashboard-header h2,
+.member-dashboard .dashboard-header h2 {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+}
+
+.admin-dashboard .dashboard-header p,
+.member-dashboard #memberGreeting {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.admin-dashboard .admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.admin-dashboard .upload-card h3,
+.member-dashboard .upload-card h3 {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.admin-dashboard .help-text,
+.member-dashboard .upload-card > p {
+  color: #94a3b8;
+  font-size: 0.92rem;
+  margin: 0 0 18px 0;
+}
+
+.admin-dashboard .form-group,
+.member-dashboard .form-group {
+  margin-bottom: 16px;
+}
+
+.admin-dashboard .form-group label,
+.member-dashboard .form-group label {
+  display: block;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+
+.admin-dashboard .form-group input,
+.admin-dashboard .form-group select,
+.admin-dashboard .form-group textarea,
+.member-dashboard .form-group input,
+.member-dashboard .form-group select,
+.member-dashboard .form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(6, 12, 22, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  padding: 10px 13px;
+  color: #f8fafc;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 0.95rem;
+}
+
+.admin-dashboard .form-group input:focus,
+.admin-dashboard .form-group textarea:focus,
+.member-dashboard .form-group input:focus,
+.member-dashboard .form-group select:focus {
+  outline: none;
+  border-color: rgba(226, 232, 240, 0.55);
+}
+
+/* Clean, crisp solid buttons matching your Sign-In card */
+.btn-submit,
+.admin-dashboard .btn-submit,
+.member-dashboard .btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 10px 22px;
+  background: #e2e8f0 !important;
+  color: #090d16 !important;
+  font-family: 'Source Sans Pro', sans-serif !important;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-submit:hover {
+  background: #ffffff !important;
+}
+
+.admin-dashboard #adminLogout,
+.member-dashboard #memberLogout {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* =========================================
+   Leadership Team: Center 4th Card & Circular Photos
+   ========================================= */
+/* =========================================
+   Leadership Team: Original Tight Spacing + Centered 4th Card
+   ========================================= */
+.leaders-grid {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px !important;
+}
+
+.leaders-grid .leader-card {
+  flex: 0 1 calc(33.333% - 16px) !important;
+  min-width: 280px;
+  max-width: none !important;
+  box-sizing: border-box;
+}
+
+.leader-avatar {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leader-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
 

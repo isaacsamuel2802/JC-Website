@@ -8,8 +8,11 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const { rateLimit } = require('express-rate-limit');
 const helmet = require('helmet');
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '.jc-website-private-data');
 const DB_PATH = path.join(DATA_DIR, 'journalclub.db');
@@ -40,14 +43,16 @@ if (resolvedDataDir === __dirname || resolvedDataDir.startsWith(`${path.resolve(
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb', parameterLimit: 100 }));
 app.use(helmet({
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://tailwindcss.com'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://accounts.google.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-      imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
+      connectSrc: ["'self'", 'https://accounts.google.com'],
+      frameSrc: ["'self'", 'https://accounts.google.com'],
       workerSrc: ["'self'", 'blob:', 'https://cdnjs.cloudflare.com'],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
@@ -173,7 +178,54 @@ app.post('/api/logout', (req, res) => {
   clearSession(req, res, MEMBER_SESSION_COOKIE);
   res.json({ success: true });
 });
+app.post('/api/auth/google', loginRateLimit, async (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ error: 'Google Sign-In is not configured on the server.' });
+  }
+  const { credential } = req.body;
+  if (typeof credential !== 'string' || !credential) {
+    return res.status(400).json({ error: 'Missing Google credential.' });
+  }
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email_verified) {
+      return res.status(401).json({ error: 'Please use a verified Google account.' });
+    }
+    const email = payload.email.toLowerCase();
+    const name = (payload.name || email.split('@')).trim().slice(0, 100);
 
+    db.get('SELECT id, name, email FROM members WHERE email = ?', [email], async (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error.' });
+      }
+      if (row) {
+        createSession(res, MEMBER_SESSION_COOKIE, { type: 'member', name: row.name, email: row.email });
+        return res.json(row);
+      }
+      const randomPassHash = await hashPassword(crypto.randomBytes(32).toString('hex'));
+      const createdAt = new Date().toISOString();
+      db.run(
+        'INSERT INTO members (name, email, password, createdAt) VALUES (?, ?, ?, ?)',
+        [name, email, randomPassHash, createdAt],
+        function (insertErr) {
+          if (insertErr) {
+            return res.status(500).json({ error: 'Unable to create member account.' });
+          }
+          const member = { id: this.lastID, name, email };
+          createSession(res, MEMBER_SESSION_COOKIE, { type: 'member', name, email });
+          res.json(member);
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Google token verification failed:', error);
+    res.status(401).json({ error: 'Invalid Google sign-in token.' });
+  }
+});
 app.get('/api/articles', (req, res) => {
   db.all('SELECT * FROM articles ORDER BY createdAt DESC', (err, rows) => {
     if (err) {

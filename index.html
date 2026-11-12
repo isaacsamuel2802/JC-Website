@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://tailwindcss.com"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Journal Club</title>
-  <link rel="stylesheet" href="stylesone.css?v=7" />
+
+  <link rel="stylesheet" href="stylesone.css?v=10" />
   <style>
     @keyframes fadeInTitle {
       from { opacity: 0; }
@@ -152,6 +152,9 @@
           </div>
           <button type="submit" class="btn-submit">Create account</button>
         </form>
+        <div style="margin: 16px 0; text-align: center; color: #94a3b8; font-size: 0.85rem;">or</div>
+<div id="googleSignUpBtn" style="display: flex; justify-content: center; min-height: 44px;"></div>
+
         <p class="member-login-register">Already a member? <button type="button" id="btnGoToLogin">Sign in</button></p>
       </div>
     </section>
@@ -176,6 +179,9 @@
           </div>
           <button type="submit" class="btn-submit">Sign in</button>
         </form>
+                </form>
+        <div style="margin: 16px 0; text-align: center; color: #94a3b8; font-size: 0.85rem;">or</div>
+        <div id="googleSignInBtn" style="display: flex; justify-content: center; min-height: 44px;"></div>
         <p class="member-login-register">New to Journal Club? <button type="button" id="btnGoToRegister">Create an account</button></p>
       </div>
     </section>
@@ -408,6 +414,8 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
   </script>
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=9"></script>
+  <script src= "https://accounts.google.com/gsi/client" async defer></script>
+
 </body>
 </html>
