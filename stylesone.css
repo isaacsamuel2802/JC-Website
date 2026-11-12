@@ -2381,3 +2381,46 @@ button,
     transition: none;
   }
 }
+/* Mobile Navigation Fix */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 14px;
+  }
+
+  .navbar-left {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navbar-brand {
+    white-space: nowrap;
+    font-size: 1.35rem;
+  }
+
+  .navbar-right {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  .navbar-right .nav-link,
+  .navbar-right .secondary-btn,
+  .navbar-right .primary-btn {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+
+  .navbar-right .primary-btn {
+    width: 100%;
+    max-width: 240px;
+    margin-top: 4px;
+    text-align: center;
+  }
+}
+
