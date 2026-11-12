@@ -11,3 +11,4 @@ TEMP_patch_notes.txt
 
 # Ignore old backup scripts to keep the project clean
 script.fixed.old.js
+node_modules/ 
