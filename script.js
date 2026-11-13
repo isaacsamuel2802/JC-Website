@@ -67,16 +67,26 @@ let adminSettings = {
   aboutText: 'This club is dedicated to sharing journals, articles, and research through a simple, polished publishing workflow. Members upload PDF files and the journal appears automatically.'
 };
 let session = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) || 'null') || { type: 'visitor' };
-if (session.type === 'admin') session = { type: 'visitor' };
 
 async function restoreAdminSession() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/admin/session`);
-    if (!response.ok) return;
+    const response = await fetch(`${API_BASE_URL}/api/admin/session`, {
+      credentials: 'same-origin'
+    });
+    if (!response.ok) {
+      if (session.type === 'admin') {
+        session = { type: 'visitor' };
+        saveState();
+        renderUI();
+        renderUploads(searchInput ? searchInput.value : '');
+      }
+      return;
+    }
     const data = await response.json();
     session = { type: 'admin', name: data.name, email: '' };
     saveState();
     renderUI();
+    renderUploads(searchInput ? searchInput.value : '');
     restorePanelFromHash();
   } catch (error) {
     console.error('Unable to verify admin session', error);
@@ -84,8 +94,7 @@ async function restoreAdminSession() {
 }
 
 function saveState() {
-  const savedSession = session.type === 'admin' ? { type: 'visitor' } : session;
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(savedSession));
+  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
 }
 
 function setPanel(panelName) {
@@ -123,12 +132,15 @@ async function loadSettings() {
 
 async function restoreMemberSession() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/session`);
+    const response = await fetch(`${API_BASE_URL}/api/session`, {
+      credentials: 'same-origin'
+    });
     if (!response.ok) {
       if (session.type === 'member') {
         session = { type: 'visitor' };
         saveState();
         renderUI();
+        renderUploads(searchInput ? searchInput.value : '');
       }
       return;
     }
@@ -136,16 +148,17 @@ async function restoreMemberSession() {
     session = { type: 'member', name: data.name, email: data.email };
     saveState();
     renderUI();
+    renderUploads(searchInput ? searchInput.value : '');
   } catch (error) {
     console.error('Unable to verify member session', error);
     if (session.type === 'member') {
       session = { type: 'visitor' };
       saveState();
       renderUI();
+      renderUploads(searchInput ? searchInput.value : '');
     }
   }
 }
-
 async function fetchArticles() {
   try {
     const response = await fetch(`${API_BASE_URL}/api/articles`);
@@ -254,7 +267,14 @@ function renderUploads(filter = '') {
     const dateLabel = item.date ? `Published: ${escapeHtml(item.date)}` : 'Publication date not set';
     const fileLabel = escapeHtml(item.fileName || 'PDF upload');
 
-    const deleteButton = session.type === 'admin' || (session.type === 'member' && session.email === item.uploadedByEmail)
+    const canDelete =
+      session.type === 'admin' ||
+      (session.type === 'member' &&
+        Boolean(session.email) &&
+        Boolean(item.uploadedByEmail) &&
+        session.email.toLowerCase() === item.uploadedByEmail.toLowerCase());
+
+    const deleteButton = canDelete
       ? `<button class="action-btn" data-action="delete" data-index="${originalIndex}">Delete</button>`
       : '';
 
